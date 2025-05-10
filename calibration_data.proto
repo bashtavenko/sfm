@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package sfm.proto;
+
+// Camera intrinsic matrix
+message CameraMatrix {
+  // Camera focal distance.
+  // It is a product of the physical focal length of the lens and the size Sx
+  // of the individual imager elements.
+  // fx = F * Sx. Focal length in millimeters are not measurable
+  float fx = 1;
+  // The reason for fx is because the imagers are rectangular rather then square
+  float fy = 2;
+  // Center of projection on x to show possible displacement away from the
+  // optical axis of the center of coordinate. Units are in pixel coordinates.
+  float cx = 3;
+  // Same as cx on a different axis.
+  float cy = 4;
+}
+
+// Camera introduces distortion to images. During calibration the distortion
+// parameters are identified. These parameters have two types:
+// * Radial distortion causes lines to appear curved.
+// * Tangential distortion occurs because lenses are not aligned
+//   perfectly parallel to the imaging plane and the image appears nearer than
+//   expected.
+// See more at https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
+message DistortionParameters {
+  // There may be 4, 5 or 8 parameters which are 3 or more radial parameters
+  // k1..k5 and 2 possible tangential parameters p1 and p2.
+  // If length 4 then there should be k1, k2, p1 and p2.
+  // If the length is 5 or 8, then the elements will be either (k1, k2, p1, p2
+  // and k3) or (k1, k2, p1, p2, k3, k4, k5 and k6), respectively.
+  // The five-element form is primarily for fisheye lenses.
+  float k1 = 1;
+  float k2 = 2;
+  float k3 = 3;
+  optional float k4 = 4;
+  optional float k5 = 5;
+  optional float p1 = 6;
+  optional float p2 = 7;
+}
+
+message CalibrationResult {
+  float reprojection_error = 1;
+  CameraMatrix camera_matrix = 2;
+  DistortionParameters distortion_parameters = 3;
+}

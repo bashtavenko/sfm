@@ -1,5 +1,7 @@
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
+load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 
 # bazel run //:buildifier
 # .. or warn
@@ -16,7 +18,7 @@ buildifier(
 cmake(
     name = "opencv",
     cache_entries = {
-        "BUILD_LIST": "core,features2d,highgui,imgcodecs,imgproc,video,videoio",
+        "BUILD_LIST": "calib3d,core,features2d,highgui,imgcodecs,imgproc,video,videoio",
         "WITH_FFMPEG": "ON",
         "WITH_GTK": "OFF",
         "WITH_QT": "ON",
@@ -24,7 +26,9 @@ cmake(
     lib_source = "@opencv//:all",
     out_include_dir = "include/opencv4",
     out_shared_libs = [
+        "libopencv_calib3d.so.408",
         "libopencv_core.so.408",
+        "libopencv_flann.so.408",
         "libopencv_features2d.so.408",
         "libopencv_highgui.so.408",
         "libopencv_imgcodecs.so.408",
@@ -39,7 +43,7 @@ cc_library(
     name = "image_processing_toolbox",
     srcs = ["image_processing_toolbox.cc"],
     hdrs = ["image_processing_toolbox.h"],
-    data = ["//:testdata"],
+    data = ["//testdata"],
     deps = [
         ":opencv",
         "@absl//absl/status",
@@ -50,7 +54,7 @@ cc_library(
 cc_test(
     name = "image_processing_toolbox_test",
     srcs = ["image_processing_toolbox_test.cc"],
-    data = ["//:testdata"],
+    data = ["//testdata"],
     deps = [
         ":image_processing_toolbox",
         "@absl//absl/status:status_matchers",
@@ -62,7 +66,7 @@ cc_test(
 cc_binary(
     name = "image_toolbox_cli",
     srcs = ["image_toolbox_cli.cc"],
-    data = ["//:testdata"],
+    data = ["//testdata"],
     deps = [
         ":image_processing_toolbox",
         "@absl//absl/flags:flag",
@@ -70,5 +74,40 @@ cc_binary(
         "@absl//absl/status",
         "@gflags",
         "@glog",
+    ],
+)
+
+proto_library(
+    name = "calibration_data",
+    srcs = ["calibration_data.proto"],
+)
+
+cc_proto_library(
+    name = "calibration_data_cc",
+    deps = [":calibration_data"],
+)
+
+cc_library(
+    name = "caibrator",
+    srcs = ["calibrator.cc"],
+    hdrs = ["calibrator.h"],
+    deps = [
+        ":calibration_data_cc",
+        "//:opencv",
+        "@absl//absl/status",
+        "@glog",
+    ],
+)
+
+cc_test(
+    name = "calibrator_test",
+    srcs = ["calibrator_test.cc"],
+    data = ["//testdata"],
+    deps = [
+        ":caibrator",
+        "@absl//absl/status:status_matchers",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+        "@protobuf-matchers//protobuf-matchers",
     ],
 )
