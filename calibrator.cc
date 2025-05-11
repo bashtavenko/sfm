@@ -51,6 +51,8 @@ absl::StatusOr<sfm::proto::CalibrationResult> Calibrate(
     }
 
     // Refine corner locations for better precision
+    // 11 x 11 means half-width and half-height search area
+    // Chessboards printed with square sizes >= 20-25 pixels on the image
     cv::cornerSubPix(
         image, corners, cv::Size(11, 11), cv::Size(-1, -1),
         cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER, 30,
@@ -62,9 +64,9 @@ absl::StatusOr<sfm::proto::CalibrationResult> Calibrate(
   }
 
   cv::Mat camera_matrix;
-  cv::Mat dist_coeffs;
-  double reprojection_error = cv::calibrateCamera(
-      object_points, image_points, image_size, camera_matrix, dist_coeffs,
+  cv::Mat distortions;
+  const double reprojection_error = cv::calibrateCamera(
+      object_points, image_points, image_size, camera_matrix, distortions,
       cv::noArray(), cv::noArray());
 
   proto::CalibrationResult result;
@@ -74,22 +76,22 @@ absl::StatusOr<sfm::proto::CalibrationResult> Calibrate(
   result.mutable_camera_matrix()->set_fy(camera_matrix.at<double>(1, 1));
   result.mutable_camera_matrix()->set_cy(camera_matrix.at<double>(1, 2));
   result.set_reprojection_error(reprojection_error);
-  // Distortion
-  result.mutable_distortion_parameters()->set_k1(dist_coeffs.at<double>(0, 0));
-  result.mutable_distortion_parameters()->set_k2(dist_coeffs.at<double>(0, 1));
-  result.mutable_distortion_parameters()->set_k3(dist_coeffs.at<double>(0, 2));
-  result.mutable_distortion_parameters()->set_k4(dist_coeffs.at<double>(0, 3));
-  if (dist_coeffs.cols >= 5) {
+  // Distortions
+  result.mutable_distortion_parameters()->set_k1(distortions.at<double>(0, 0));
+  result.mutable_distortion_parameters()->set_k2(distortions.at<double>(0, 1));
+  result.mutable_distortion_parameters()->set_k3(distortions.at<double>(0, 2));
+  result.mutable_distortion_parameters()->set_k4(distortions.at<double>(0, 3));
+  if (distortions.cols >= 5) {
     result.mutable_distortion_parameters()->set_k5(
-        dist_coeffs.at<double>(0, 4));
+        distortions.at<double>(0, 4));
   }
-  if (dist_coeffs.cols >= 6) {
+  if (distortions.cols >= 6) {
     result.mutable_distortion_parameters()->set_p1(
-        dist_coeffs.at<double>(0, 5));
+        distortions.at<double>(0, 5));
   }
-  if (dist_coeffs.cols >= 7) {
+  if (distortions.cols >= 7) {
     result.mutable_distortion_parameters()->set_p2(
-        dist_coeffs.at<double>(0, 6));
+        distortions.at<double>(0, 6));
   }
 
   return result;

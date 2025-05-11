@@ -13,9 +13,12 @@ using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::bazel::tools::cpp::runfiles::Runfiles;
+using ::protobuf_matchers::Approximately;
 using ::protobuf_matchers::EqualsProto;
+using ::protobuf_matchers::Partially;
 using ::testing::HasSubstr;
 
+constexpr float kTolerance = 1e-1;
 
 TEST(Calibrator, InvalidFailed) {
   EXPECT_THAT(Calibrate("foo"),
@@ -27,8 +30,15 @@ TEST(Calibrator, Works) {
   const std::string images_directory =
       files->Rlocation("_main/testdata/calibration");
 
-  EXPECT_THAT(Calibrate(images_directory),
-              IsOkAndHolds(EqualsProto(R"pb(reprojection_error: 23)pb")));
+  EXPECT_THAT(
+      Calibrate(images_directory),
+      IsOkAndHolds(Partially(Approximately(EqualsProto(R"pb(camera_matrix: {
+                                                              fx: 1419.3
+                                                              fy: 1424.7
+                                                              cx: 574.2
+                                                              cy: 953.4
+                                                            })pb"),
+                                           kTolerance))));
 }
 
 }  // namespace

@@ -111,3 +111,18 @@ cc_test(
         "@protobuf-matchers//protobuf-matchers",
     ],
 )
+
+cc_binary(
+    name = "calibrator_cli",
+    srcs = ["calibrator_cli.cc"],
+    data = ["//testdata"],
+    deps = [
+        ":caibrator",
+        "@absl//absl/flags:flag",
+        "@absl//absl/flags:parse",
+        "@absl//absl/status",
+        "@gflags",
+        "@glog",
+        "@status_macros",
+    ],
+)
