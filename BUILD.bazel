@@ -126,3 +126,45 @@ cc_binary(
         "@status_macros",
     ],
 )
+
+cc_library(
+    name = "reconstruction",
+    srcs = ["reconstruction.cc"],
+    hdrs = ["reconstruction.h"],
+    deps = [
+        ":calibration_data_cc",
+        ":sfm",
+        "//:opencv",
+        "@absl//absl/status",
+        "@absl//absl/status:statusor",
+        "@absl//absl/strings",
+        "@glog",
+        "@status_macros",
+    ],
+)
+
+cc_test(
+    name = "reconstruction_test",
+    srcs = ["reconstruction_test.cc"],
+    data = ["//testdata"],
+    deps = [
+        ":calibration_data_cc",
+        ":reconstruction",
+        "@absl//absl/status:status_matchers",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
+        "@protobuf-matchers//protobuf-matchers",
+    ],
+)
+
+cc_library(
+    name = "sfm",
+    srcs = ["sfm.cc"],
+    hdrs = ["sfm.h"],
+    deps = [
+        ":calibration_data_cc",
+        "@absl//absl/status",
+        "@absl//absl/strings",
+        "@glog",
+    ],
+)
