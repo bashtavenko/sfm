@@ -168,3 +168,18 @@ cc_library(
         "@glog",
     ],
 )
+
+cc_binary(
+    name = "run_main",
+    srcs = ["run_main.cc"],
+    data = ["//testdata"],
+    deps = [
+        ":reconstruction",
+        "@absl//absl/flags:flag",
+        "@absl//absl/flags:parse",
+        "@absl//absl/status",
+        "@gflags",
+        "@glog",
+        "@status_macros",
+    ],
+)
