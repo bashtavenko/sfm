@@ -12,7 +12,7 @@ ABSL_FLAG(std::string, images_directory, "testdata/reconstruction",
           "Directory with input image frames");
 ABSL_FLAG(std::string, calibration_file, "testdata/pixel_6a_calibration.txtpb",
           "Intrinsic camera calibration");
-ABSL_FLAG(std::string, ouput_point_cloud_file, "/tmp/bottle.ply",
+ABSL_FLAG(std::string, output_point_cloud_file, "/tmp/bottle.ply",
           "Point cloud in PLY format");
 
 absl::Status Run() {
@@ -25,7 +25,7 @@ absl::Status Run() {
       sfm::GetFilesFromDirectory(absl::GetFlag(FLAGS_images_directory)));
 
   RETURN_IF_ERROR(reconstruction.Run(
-      image_paths, absl::GetFlag(FLAGS_ouput_point_cloud_file)));
+      image_paths, absl::GetFlag(FLAGS_output_point_cloud_file)));
 
   return absl::OkStatus();
 }

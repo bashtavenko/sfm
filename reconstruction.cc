@@ -106,6 +106,7 @@ absl::StatusOr<std::vector<int32_t>> Reconstruction::DetectFeatures(
 std::vector<int32_t> Reconstruction::MatchFeatures(float ratio_threshold) {
   feature_matches_.clear();
   std::vector<int32_t> match_counts;
+  static constexpr int32_t kMinGoodMatchesSize = 8;
 
   for (size_t i = 0; i < images_.size() - 1; ++i) {
     std::vector<std::vector<cv::DMatch>> knn_matches;
@@ -132,6 +133,10 @@ std::vector<int32_t> Reconstruction::MatchFeatures(float ratio_threshold) {
       }
     }
 
+    if (good_matches.size() < kMinGoodMatchesSize) {
+      LOG(INFO) << "Skipping too few correspondences: " << good_matches.size();
+      continue;
+    }
     feature_matches_.push_back(good_matches);
     match_counts.push_back(static_cast<int>(good_matches.size()));
   }
@@ -157,6 +162,10 @@ absl::Status Reconstruction::EstimateCameraPoses() {
     // Recover pose (rotation and translation)
     cv::Mat R;
     cv::Mat t;
+
+    CHECK(E.isContinuous());
+    CHECK(mask.isContinuous());
+    CHECK(camera_matrix_.isContinuous());
     cv::recoverPose(E, pts1, pts2, camera_matrix_, R, t, mask);
 
     // Get previous pose
