@@ -41,6 +41,7 @@ absl::Status Reconstruction::Run(const std::vector<std::string>& image_paths,
                                   GetPointCloud().dims);
   LOG(INFO) << absl::StreamFormat("Saving 3D point cloud...");
   RETURN_IF_ERROR(SavePointCloud(point_cloud_path));
+  LOG(INFO) << "Done.";
   return absl::OkStatus();
 }
 
@@ -154,7 +155,9 @@ absl::Status Reconstruction::EstimateCameraPoses() {
       pts2.push_back(keypoints_[i + 1][feature_matches_[i][j].trainIdx].pt);
     }
 
-    // Estimate essential matrix
+    // Estimate essential matrix. It is 3 x 3
+    // E = [t]x R. Where [t]x - skewed symmetric matrix of translation vector (3x1)
+    // R = rotation matrix (3 x 3)
     cv::Mat mask;
     cv::Mat E = cv::findEssentialMat(pts1, pts2, camera_matrix_, cv::RANSAC,
                                      0.999, 1.0, mask);
@@ -279,6 +282,79 @@ absl::Status Reconstruction::SavePointCloud(absl::string_view file_path) {
   }
 
   file.close();
+  return absl::OkStatus();
+}
+
+absl::Status Reconstruction::VisualizeMatches(int image_idx1, int image_idx2) const {
+  if (image_idx1 >= images_.size() || image_idx2 >= images_.size()) {
+    return absl::InvalidArgumentError("Invalid image indices.");
+  }
+
+  if (image_idx1 >= feature_matches_.size()) {
+    return absl::InvalidArgumentError("Feature matches not available for image_idx1.");
+  }
+
+  const auto& img1 = images_[image_idx1];
+  const auto& img2 = images_[image_idx2];
+  const auto& kpts1 = keypoints_[image_idx1];
+  const auto& kpts2 = keypoints_[image_idx2];
+  const auto& matches = feature_matches_[image_idx1];  // Assuming pairwise [i] = match between i and i+1
+
+  // Create masks for unmatched keypoints
+  std::vector<char> matched1(kpts1.size(), 0);
+  std::vector<char> matched2(kpts2.size(), 0);
+  for (const auto& m : matches) {
+    matched1[m.queryIdx] = 1;
+    matched2[m.trainIdx] = 1;
+  }
+
+  // Convert to color images for drawing
+  cv::Mat color_img1, color_img2;
+  if (img1.channels() == 1) cv::cvtColor(img1, color_img1, cv::COLOR_GRAY2BGR);
+  else img1.copyTo(color_img1);
+  if (img2.channels() == 1) cv::cvtColor(img2, color_img2, cv::COLOR_GRAY2BGR);
+  else img2.copyTo(color_img2);
+
+  // Draw unmatched keypoints in black
+  for (size_t i = 0; i < kpts1.size(); ++i) {
+    if (!matched1[i]) {
+      cv::circle(color_img1, kpts1[i].pt, 3, cv::Scalar(0, 0, 0), -1);
+    }
+  }
+  for (size_t i = 0; i < kpts2.size(); ++i) {
+    if (!matched2[i]) {
+      cv::circle(color_img2, kpts2[i].pt, 3, cv::Scalar(0, 0, 0), -1);
+    }
+  }
+
+  // Draw matches in white
+  cv::Mat match_vis;
+  cv::drawMatches(
+      color_img1, kpts1,
+      color_img2, kpts2,
+      matches, match_vis,
+      cv::Scalar(255, 255, 255),  // match color (white)
+      cv::Scalar::all(-1),        // single point color
+      {},                         // match mask
+      cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+
+  // Find and draw homography inliers
+  if (matches.size() >= 4) {
+    std::vector<cv::Point2f> pts1, pts2;
+    for (const auto& m : matches) {
+      pts1.push_back(kpts1[m.queryIdx].pt);
+      pts2.push_back(kpts2[m.trainIdx].pt);
+    }
+    std::vector<uchar> inliers_mask;
+    cv::Mat H = cv::findHomography(pts1, pts2, cv::RANSAC, 3.0, inliers_mask);
+    if (!H.empty()) {
+      // Optionally draw inlier matches only
+      // Could also overlay bounding boxes if useful
+    }
+  }
+
+  cv::imshow("Feature Matches", match_vis);
+  cv::waitKey(0);
   return absl::OkStatus();
 }
 

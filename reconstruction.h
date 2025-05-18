@@ -15,6 +15,7 @@ class Reconstruction {
   Reconstruction(const proto::CameraMatrix& camera_matrix);
   absl::Status Run(const std::vector<std::string>& image_paths,
     absl::string_view file_path);
+  absl::Status VisualizeMatches(int image_idx1 = 0, int image_idx2 = 1) const;
   cv::Mat GetPointColors() const;
   std::vector<cv::Mat> GetCameraPoses() const;
   cv::Mat GetPointCloud() const;

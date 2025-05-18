@@ -8,11 +8,12 @@
 #include "sfm.h"
 #include "status_macros.h"
 
-ABSL_FLAG(std::string, images_directory, "testdata/reconstruction",
+ABSL_FLAG(std::string, images_directory,
+          "testdata/reconstruction/kleenex/two_frames",
           "Directory with input image frames");
 ABSL_FLAG(std::string, calibration_file, "testdata/pixel_6a_calibration.txtpb",
           "Intrinsic camera calibration");
-ABSL_FLAG(std::string, output_point_cloud_file, "/tmp/bottle.ply",
+ABSL_FLAG(std::string, output_point_cloud_file, "/tmp/kleenex_2.ply",
           "Point cloud in PLY format");
 
 absl::Status Run() {
@@ -26,6 +27,8 @@ absl::Status Run() {
 
   RETURN_IF_ERROR(reconstruction.Run(
       image_paths, absl::GetFlag(FLAGS_output_point_cloud_file)));
+
+  RETURN_IF_ERROR(reconstruction.VisualizeMatches());
 
   return absl::OkStatus();
 }

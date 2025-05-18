@@ -22,9 +22,9 @@ TEST(Reconstruction, Works) {
   EXPECT_THAT(camera_matrix, IsOk());
   Reconstruction reconstruction(camera_matrix.value());
 
-  const std::string point_cloud_file_path = "/tmp/bottle.ply";
+  const std::string point_cloud_file_path = "/tmp/kleenex.ply";
   const std::string images_directory =
-      files->Rlocation("_main/testdata/reconstruction");
+      files->Rlocation("_main/testdata/reconstruction/kleenex/two_frames");
   auto image_paths = GetFilesFromDirectory(images_directory);
   EXPECT_THAT(image_paths, IsOk());
   EXPECT_THAT(reconstruction.Run(image_paths.value(), point_cloud_file_path),
