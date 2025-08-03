@@ -205,16 +205,16 @@ cc_binary(
         "@status_macros",
     ],
 )
-#
-#cc_library(
-#    name = "slam",
-#    srcs = ["slam.cc"],
-#    hdrs = ["slam.h"],
-#    deps = [
-#        #        "//:opencv",
-#        "@absl//absl/status",
-#        "@absl//absl/strings",
-#        "@glog",
-#        "@status_macros",
-#    ],
-#)
+
+cc_library(
+    name = "slam",
+    srcs = ["slam.cc"],
+    hdrs = ["slam.h"],
+    deps = [
+        "//:opencv",
+        "@absl//absl/status",
+        "@absl//absl/strings",
+        "@glog",
+        "@status_macros",
+    ],
+)
