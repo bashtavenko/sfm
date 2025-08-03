@@ -38,3 +38,5 @@ MODULE.bazel.lock
 
 # CLion
 .idea/
+
+testdata/local/**/*
