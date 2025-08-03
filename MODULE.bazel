@@ -1,14 +1,15 @@
 bazel_dep(name = "buildifier_prebuilt", version = "7.1.2", dev_dependency = True)
 
-bazel_dep(name = "rules_foreign_cc", version = "0.10.1")
-bazel_dep(name = "rules_cc", version = "0.0.16")
-bazel_dep(name = "googletest", version = "1.15.2")
-bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "absl")
+bazel_dep(name = "rules_foreign_cc", version = "0.15.0")
+bazel_dep(name = "rules_cc", version = "0.1.2")
+bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "googletest", version = "1.17.0")
+bazel_dep(name = "abseil-cpp", version = "20250512.1", repo_name = "absl")
 bazel_dep(name = "gflags", version = "2.2.2")
 bazel_dep(name = "glog", version = "0.7.1")
-bazel_dep(name = "protobuf", version = "30.2")
+bazel_dep(name = "protobuf", version = "31.1")
+bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "protobuf-matchers", version = "0.1.1")
-bazel_dep(name = "rules_proto", version = "7.1.0")
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -23,9 +24,9 @@ filegroup(
 http_archive(
     name = "opencv",
     build_file_content = all_content,
-    sha256 = "cbf47ecc336d2bff36b0dcd7d6c179a9bb59e805136af6b9670ca944aef889bd",
-    strip_prefix = "opencv-4.8.0",
-    urls = ["https://github.com/opencv/opencv/archive/refs/tags/4.8.0.tar.gz"],
+    sha256 = "9a7c11f924eff5f8d8070e297b322ee68b9227e003fd600d4b8122198091665f",
+    strip_prefix = "opencv-4.11.0",
+    urls = ["https://github.com/opencv/opencv/archive/refs/tags/4.11.0.tar.gz"],
 )
 
 http_archive(
