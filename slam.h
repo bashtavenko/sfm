@@ -1,13 +1,19 @@
 #ifndef SLAM_H
 #define SLAM_H
 
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "opencv2/features2d.hpp"
 #include "opencv2/opencv.hpp"
+#include "calibration_data.pb.h"
+
 
 namespace sfm {
 
+using Keypoints = std::vector<std::vector<cv::KeyPoint>>;
 using Features = std::vector<std::vector<cv::DMatch>>;
 using CameraPose = cv::Mat;
 using PointCloud = cv::Mat;
@@ -16,10 +22,10 @@ using ImageFrame = cv::Mat;
 class SLAM {
 public:
   // Main SLAM processing loop - processes one frame at a time
-  absl::Status ProcessFrame(const std::string& image_path);
+  absl::Status ProcessFrame(const ImageFrame& image);
 
   // Initialize with first frame
-  absl::Status Initialize(const std::string& first_image_path);
+  absl::Status Initialize();
 
   // Save current map
   absl::Status SaveMap(absl::string_view point_cloud_path);
@@ -47,8 +53,8 @@ private:
   Features current_features_;
   Features previous_features_;
 
-  cv::Mat current_pose_;
-  cv::Mat previous_pose_;
+  CameraPose current_pose_;
+  CameraPose previous_pose_;
 
   cv::Mat management_;
   std::deque<ImageFrame> image_frames_;
