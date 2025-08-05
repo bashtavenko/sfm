@@ -211,10 +211,23 @@ cc_library(
     srcs = ["slam.cc"],
     hdrs = ["slam.h"],
     deps = [
+        ":calibration_data_cc",
         "//:opencv",
-        "@absl//absl/status",
+        "@absl//absl/status:statusor",
         "@absl//absl/strings",
         "@glog",
         "@status_macros",
+    ],
+)
+
+cc_test(
+    name = "slam_test",
+    srcs = ["slam_test.cc"],
+    deps = [
+        ":slam",
+        "//:opencv",
+        "@absl//absl/status:status_matchers",
+        "@bazel_tools//tools/cpp/runfiles",
+        "@googletest//:gtest_main",
     ],
 )
