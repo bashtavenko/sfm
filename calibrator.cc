@@ -10,7 +10,7 @@ namespace sfm {
 
 // This is a regular "9x6 OpenCV chessboard" in portrait mode.
 // These dimensions refer to the number of inner corners and
-// not the number of squares.
+// not the number of squares.S
 // 6 internal corners, 9 internal corners
 // 9 columns and 6 rows
 static constexpr int32_t kBoardWidth = 6;

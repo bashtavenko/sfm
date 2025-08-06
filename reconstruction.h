@@ -14,7 +14,7 @@ class Reconstruction {
   // Initialize camera intrinsict and initial camera pose.
   Reconstruction(const proto::CameraMatrix& camera_matrix);
   absl::Status Run(const std::vector<std::string>& image_paths,
-    absl::string_view file_path);
+    absl::string_view point_cloud_path);
   absl::Status VisualizeMatches(int image_idx1 = 0, int image_idx2 = 1) const;
   cv::Mat GetPointColors() const;
   std::vector<cv::Mat> GetCameraPoses() const;

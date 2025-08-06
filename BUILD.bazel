@@ -223,7 +223,9 @@ cc_library(
 cc_test(
     name = "slam_test",
     srcs = ["slam_test.cc"],
+    data = ["//testdata"],
     deps = [
+        ":sfm",
         ":slam",
         "//:opencv",
         "@absl//absl/status:status_matchers",
