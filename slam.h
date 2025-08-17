@@ -12,10 +12,11 @@
 namespace sfm {
 
 using Keypoints = std::vector<std::vector<cv::KeyPoint>>;
-using Features = std::vector<std::vector<cv::DMatch>>;
+using Descriptors = std::vector<cv::Mat>;
 using CameraPose = cv::Mat;
 using PointCloud = cv::Mat;
 using ImageFrame = cv::Mat;
+
 
 class SLAM {
  public:
@@ -38,13 +39,17 @@ class SLAM {
   const PointCloud& GetMap() const { return global_map_; }
 
  private:
+  std::deque<Keypoints> keyframes_;
+  static constexpr size_t MAX_KEYFRAMES = 10; // Keep recent keyframes
+
   // Initialize with first frame
-  void Initialize(const ImageFrame& image_frame);
+  absl::Status Initialize(const ImageFrame& image_frame);
 
   // Core processing functions (adapted from your SfM)
   absl::Status LoadCurrentFrame(const std::string& image_path);
-  absl::StatusOr<Features> DetectFeaturesCurrentFrame();
-  std::vector<int32_t> MatchWithPreviousFrame();
+  // Detect current keypoints and descriptors
+  absl::Status DetectCurrentFrame(const ImageFrame& image_frame);
+  absl::Status MatchWithPreviousFrame(float ratio_threshold = 0.75f);
   std::vector<int32_t> MatchWithKeyframes();  // For loop closure
   absl::Status EstimateCurrentPose();
   absl::Status UpdateMap();
@@ -54,8 +59,11 @@ class SLAM {
   // SLAM-specific state
   cv::Mat current_frame_;
   cv::Mat previous_frame_;
-  Features current_features_;
-  Features previous_features_;
+  Keypoints current_keypoints_;
+  Keypoints previous_keypoints_;
+  Descriptors current_descriptors_;
+  Descriptors previous_descriptors_;
+  std::vector<std::vector<cv::DMatch>> feature_matches_;
 
   CameraPose current_pose_;
   CameraPose previous_pose_;
@@ -68,7 +76,7 @@ class SLAM {
   cv::Mat global_map_;
 
   // Simple loop closure
-  Features image_frame_features_;
+  // Features image_frame_features_;
   std::vector<CameraPose> image_frame_poses_;
 
   bool initialized_;
