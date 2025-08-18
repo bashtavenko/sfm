@@ -17,7 +17,6 @@ using CameraPose = cv::Mat;
 using PointCloud = cv::Mat;
 using ImageFrame = cv::Mat;
 
-
 class SLAM {
  public:
   SLAM(const proto::CameraMatrix& camera_matrix);
@@ -26,8 +25,7 @@ class SLAM {
   absl::Status ProcessFrame(const ImageFrame& image_frame);
 
   // Batch processing
-  absl::Status ProcessImagePaths(
-      const std::vector<std::string>& image_paths);
+  absl::Status ProcessImagePaths(const std::vector<std::string>& image_paths);
 
   // Save current map
   absl::Status SaveMap(absl::string_view point_cloud_path);
@@ -40,7 +38,7 @@ class SLAM {
 
  private:
   std::deque<Keypoints> keyframes_;
-  static constexpr size_t MAX_KEYFRAMES = 10; // Keep recent keyframes
+  static constexpr size_t MAX_KEYFRAMES = 10;  // Keep recent keyframes
 
   // Initialize with first frame
   absl::Status Initialize(const ImageFrame& image_frame);
@@ -48,7 +46,8 @@ class SLAM {
   // Core processing functions (adapted from your SfM)
   absl::Status LoadCurrentFrame(const std::string& image_path);
   // Detect current keypoints and descriptors
-  absl::Status DetectCurrentFrame(const ImageFrame& image_frame);
+  absl::Status DetectFrame(const ImageFrame& image_frame,
+                                  bool is_current);
   absl::Status MatchWithPreviousFrame(float ratio_threshold = 0.75f);
   std::vector<int32_t> MatchWithKeyframes();  // For loop closure
   absl::Status EstimateCurrentPose();

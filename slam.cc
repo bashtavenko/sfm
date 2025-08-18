@@ -18,13 +18,20 @@ SLAM::SLAM(const proto::CameraMatrix& camera_matrix) {
 }
 
 absl::Status SLAM::ProcessFrame(const ImageFrame& image_frame) {
-  RETURN_IF_ERROR(Initialize(image_frame));
+  if (!initialized_) {
+    previous_frame_ = image_frame;
+    RETURN_IF_ERROR(Initialize(image_frame));
+  }
+  current_frame_ = image_frame;
+  RETURN_IF_ERROR(DetectFrame(image_frame, /*is_current*/ true));
+  RETURN_IF_ERROR(MatchWithPreviousFrame());
+  RETURN_IF_ERROR(EstimateCurrentPose());
+  previous_frame_ = image_frame;
   return absl::OkStatus();
 }
 
 absl::Status SLAM::Initialize(const ImageFrame& image_frame) {
-  current_frame_ = image_frame;
-  RETURN_IF_ERROR(DetectCurrentFrame(image_frame));
+  RETURN_IF_ERROR(DetectFrame(image_frame, /*is_current=*/false));
   initialized_ = true;
   return absl::OkStatus();
 }
@@ -45,7 +52,8 @@ absl::Status SLAM::ProcessImagePaths(
   return absl::OkStatus();
 }
 
-absl::Status SLAM::DetectCurrentFrame(const ImageFrame& image_frame) {
+absl::Status SLAM::DetectFrame(const ImageFrame& image_frame,
+                                      bool is_current) {
   // For simplicity, just use one keypoint detector and initialize on each
   // frame.
   cv::Ptr<cv::Feature2D> detector = cv::SIFT::create();
@@ -55,8 +63,13 @@ absl::Status SLAM::DetectCurrentFrame(const ImageFrame& image_frame) {
   cv::cvtColor(image_frame, gray_frame, cv::COLOR_BGR2GRAY);
   detector->detectAndCompute(gray_frame, /*mask=*/cv::noArray(), keypoints,
                              descriptors);
-  current_keypoints_.push_back(keypoints);
-  current_descriptors_.push_back(descriptors);
+  if (is_current) {
+    current_keypoints_.push_back(keypoints);
+    current_descriptors_.push_back(descriptors);
+  } else {
+    previous_keypoints_.push_back(keypoints);
+    previous_descriptors_.push_back(descriptors);
+  }
   return absl::OkStatus();
 }
 
