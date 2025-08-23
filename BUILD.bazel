@@ -1,6 +1,5 @@
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
-load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 # bazel run //:buildifier
@@ -14,51 +13,56 @@ buildifier(
     lint_mode = "fix",
 )
 
-# "-DWITH_FFMPEG=OFF" is for https://github.com/opencv/opencv/issues/22748
-cmake(
+# Linux - use prebuilt OpenCV
+# Hermetic build hosed with video module.
+cc_library(
+    name = "opencv_release",
+    srcs = glob(
+        [
+            "third_party/opencv/lib/*.so.411",
+        ],
+        allow_empty = True,
+    ),
+    hdrs = glob(
+        ["third_party/opencv/include/**/*"],
+        allow_empty = True,
+    ),
+    includes = ["third_party/opencv/include"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+    ],
+)
+
+cc_library(
+    name = "opencv_debug",
+    srcs = glob(
+        [
+            "third_party/opencv/lib_debug/*.so.411",
+        ],
+        allow_empty = True,
+    ),
+    hdrs = glob(
+        ["third_party/opencv/include_debug/**/*"],
+        allow_empty = True,
+    ),
+    includes = ["third_party/opencv/include_debub"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+    ],
+)
+
+config_setting(
+    name = "debug_build",
+    values = {"compilation_mode": "dbg"},
+)
+
+cc_library(
     name = "opencv",
-    cache_entries = select({
-        "@platforms//os:linux": {
-            "BUILD_LIST": "calib3d,core,features2d,highgui,imgcodecs,imgproc,video,videoio",
-            "WITH_FFMPEG": "ON",
-            "WITH_GTK": "OFF",
-            "WITH_QT": "ON",
-        },
-        "@platforms//os:macos": {
-            "BUILD_LIST": "calib3d,core,features2d,highgui,imgcodecs,imgproc,video,videoio",
-            "WITH_FFMPEG": "ON",
-            "WITH_GTK": "OFF",
-            "WITH_QT": "OFF",
-            "WITH_COCOA": "ON",
-        },
+    target_compatible_with = ["@platforms//os:linux"],
+    deps = select({
+        ":debug_build": [":opencv_debug"],
+        "//conditions:default": [":opencv_release"],
     }),
-    lib_source = "@opencv//:all",
-    out_include_dir = "include/opencv4",
-    out_shared_libs = select({
-        "@platforms//os:linux": [
-            "libopencv_calib3d.so.411",
-            "libopencv_core.so.411",
-            "libopencv_flann.so.411",
-            "libopencv_features2d.so.411",
-            "libopencv_highgui.so.411",
-            "libopencv_imgcodecs.so.411",
-            "libopencv_imgproc.so.411",
-            "libopencv_video.so.411",
-            "libopencv_videoio.so.411",
-        ],
-        "@platforms//os:macos": [
-            "libopencv_calib3d.411.dylib",
-            "libopencv_core.411.dylib",
-            "libopencv_flann.411.dylib",
-            "libopencv_features2d.411.dylib",
-            "libopencv_highgui.411.dylib",
-            "libopencv_imgcodecs.411.dylib",
-            "libopencv_imgproc.411.dylib",
-            "libopencv_video.411.dylib",
-            "libopencv_videoio.411.dylib",
-        ],
-    }),
-    visibility = ["//visibility:public"],
 )
 
 cc_library(
