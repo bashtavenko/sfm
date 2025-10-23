@@ -3,6 +3,8 @@
 #include "absl/strings/str_format.h"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
+#include "absl/log/check.h"
+#include <numeric>
 
 namespace sfm {
 absl::Status SaveFrames(absl::string_view video_path, int32_t k,
@@ -52,9 +54,77 @@ absl::Status SaveFrames(absl::string_view video_path, int32_t k,
   return absl::OkStatus();
 }
 
-absl::StatusOr<MotionSummary> ComputeMotionSummary(
+MotionSummary CalculateFromLK(const std::vector<cv::Point2f>& prev_pts,
+                              const std::vector<cv::Point2f>& next_pts,
+                              const std::vector<uchar>& features_found) {
+  std::vector<float> dx_values;
+  std::vector<float> dy_values;
+  std::vector<float> magnitudes;
+  MotionSummary motion;
+
+  // Collect motion vectors for successfully tracked points
+  for (size_t i = 0;
+       i < prev_pts.size() && i < next_pts.size() && i < features_found.size();
+       ++i) {
+    if (features_found[i]) {
+      // Only use successfully tracked points
+      float dx = next_pts[i].x - prev_pts[i].x;
+      float dy = next_pts[i].y - prev_pts[i].y;
+      float magnitude = sqrt(dx * dx + dy * dy);
+
+      dx_values.push_back(dx);
+      dy_values.push_back(dy);
+      magnitudes.push_back(magnitude);
+    }
+  }
+
+  if (dx_values.empty()) {
+    return motion;
+  }
+
+  // Calculate mean motion
+  motion.mean_dx = std::accumulate(dx_values.begin(), dx_values.end(), 0.0f) /
+                   dx_values.size();
+  motion.mean_dy = std::accumulate(dy_values.begin(), dy_values.end(), 0.0f) /
+                   dy_values.size();
+  motion.tracked_points_ratio = static_cast<float>(dx_values.size()) / prev_pts.size();
+  motion.mean_magnitude = sqrt(
+      motion.mean_dx * motion.mean_dx + motion.mean_dy * motion.mean_dy);
+  motion.mean_direction =
+      std::atan2(motion.mean_dy, motion.mean_dx) * 180.0f / CV_PI;
+  // Convert to degrees
+
+  // Calculate standard deviation for motion consistency
+  float sum_sq_dx = 0;
+  float sum_sq_dy = 0;
+  for (size_t i = 0; i < dx_values.size(); ++i) {
+    sum_sq_dx += (dx_values[i] - motion.mean_dx) * (
+      dx_values[i] - motion.mean_dx);
+    sum_sq_dy += (dy_values[i] - motion.mean_dy) * (
+      dy_values[i] - motion.mean_dy);
+  }
+  motion.std_dx = sqrt(sum_sq_dx / dx_values.size());
+  motion.std_dy = sqrt(sum_sq_dy / dy_values.size());
+
+  // Determine motion type
+  if (motion.mean_magnitude < 1.0f) {
+    motion.motion_type = MotionSummary::MotionType::kMinimal;
+  } else if (motion.std_dx < 2.0f && motion.std_dy < 2.0f) {
+    motion.motion_type = MotionSummary::MotionType::kRigid;
+  } else {
+    motion.motion_type = MotionSummary::MotionType::kDeformative;
+  }
+  return motion;
+}
+
+MotionSummary ComputeMotionSummary(
     const cv::Mat& image_frame, const cv::Mat& previous_image_frame) {
-  MotionSummary motion_summary;
+  CHECK(!previous_image_frame.empty()) << "previous_image is empty.";
+  CHECK(!image_frame.empty()) << "image_frame is empty.";
+  CHECK(previous_image_frame.channels() == 1)
+      << "previous_image_frame must be grayscale.";
+  CHECK(image_frame.channels() == 1)
+      << "image_frame must be grayscale.";
 
   std::vector<cv::Point2f> corners_a;
   std::vector<cv::Point2f> corners_b;
@@ -84,19 +154,19 @@ absl::StatusOr<MotionSummary> ComputeMotionSummary(
   // Lucas Kanade algorithm
   std::vector<uchar> features_found;
   cv::calcOpticalFlowPyrLK(
-      previous_image_frame,           // Previous image
-      image_frame,           // Next image
-      corners_a,       // Previous set of corners (from imgA)
-      corners_b,       // Next set of corners (from imgB)
-      features_found,  // Output vector, each is 1 for tracked
-      cv::noArray(),   // Output vector, lists errors (optional)
-      cv::Size(win_size * 2 + 1, win_size * 2 + 1),  // Search window size
-      5,  // Maximum pyramid level to construct
+      previous_image_frame, // Previous image
+      image_frame, // Next image
+      corners_a, // Previous set of corners (from imgA)
+      corners_b, // Next set of corners (from imgB)
+      features_found, // Output vector, each is 1 for tracked
+      cv::noArray(), // Output vector, lists errors (optional)
+      cv::Size(win_size * 2 + 1, win_size * 2 + 1), // Search window size
+      5, // Maximum pyramid level to construct
       cv::TermCriteria(cv::TermCriteria::MAX_ITER | cv::TermCriteria::EPS,
-                       20,  // Maximum number of iterations
-                       0.3  // Minimum change per iteration
-                       ));
+                       20, // Maximum number of iterations
+                       0.3 // Minimum change per iteration
+          ));
 
-  return motion_summary;
+  return CalculateFromLK(corners_a, corners_b, features_found);
 }
 } // namespace sfm

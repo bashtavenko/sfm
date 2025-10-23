@@ -15,7 +15,7 @@ absl::Status SaveFrames(absl::string_view video_path, int32_t k,
 // Frames should have different camera poses and have overlap.
 // Depending on criteria the number of output frames varies and can zero.
 absl::Status SaveQualityFrames(absl::string_view video_path,
-                        absl::string_view frame_output_directory);
+                               absl::string_view frame_output_directory);
 
 struct MotionSummary {
   enum class MotionType {
@@ -27,25 +27,25 @@ struct MotionSummary {
     // High variation in flow field, suggesting non-rigid or complex motion
     kDeformative
   };
-  float mean_keypoint_dx_pixels;
-  float mean_keypoint_dy_pixels;
-  float previous_keypoint_size;
+
+  // Ratio of tracked keypoints sizes vs previous keypoints sizes
+  // If image is the same ratio will be 1.
+  float tracked_points_ratio = 0;
   // Mean motion by dx;
-  float mean_dx;
+  float mean_dx = 0;
   // Mean motion by dy;
-  float mean_dy;
+  float mean_dy = 0;
   // Mean magnitude (sqrt(dx^2 + dy^2)
-  float mean_magnitude;
+  float mean_magnitude = 0;
   // Mean direction in degrees.
-  float mean_direction;
-  float std_dx;
-  float std_dy;
-  MotionType motion_type;
+  float mean_direction = 0;
+  float std_dx = 0;
+  float std_dy = 0;
+  MotionType motion_type = MotionType::kMinimal;
 };
 
-absl::StatusOr<MotionSummary>ComputeMotionSummary(cv::Mat& image_frame, cv::Mat& previous_image_frame);
-
-
+MotionSummary ComputeMotionSummary(const cv::Mat& image_frame,
+                                   const cv::Mat& previous_image_frame);
 } // namespace sfm
 
 #endif  // IMAGE_PROCESSING_TOOLBOX_H

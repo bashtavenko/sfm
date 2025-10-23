@@ -7,7 +7,6 @@
 
 namespace sfm {
 namespace {
-
 using ::absl_testing::IsOk;
 using ::bazel::tools::cpp::runfiles::Runfiles;
 
@@ -18,7 +17,7 @@ TEST(SaveFrames, Works) {
   const std::string output_path = std::filesystem::path(tmp_dir) / "frames";
   Runfiles* files = Runfiles::CreateForTest();
   ASSERT_THAT(SaveFrames(files->Rlocation("_main/testdata/video_10s.mp4"), 10,
-                         output_path),
+                output_path),
               IsOk());
 
   int32_t count = 0;
@@ -29,5 +28,56 @@ TEST(SaveFrames, Works) {
   }
   EXPECT_EQ(count, 10);
 }
-}  // namespace
-}  // namespace sfm
+
+TEST(ComputeMotionSummary, Works) {
+  Runfiles* files = Runfiles::CreateForTest();
+  const cv::Mat previous_frame = cv::imread(
+      files->Rlocation("_main/testdata/frame_0.jpg"), cv::IMREAD_GRAYSCALE);
+  ASSERT_FALSE(previous_frame.empty());
+  const cv::Mat image_frame = cv::imread(
+      files->Rlocation("_main/testdata/frame_27.jpg"), cv::IMREAD_GRAYSCALE);
+  ASSERT_FALSE(image_frame.empty());
+
+  MotionSummary motion_summary = ComputeMotionSummary(
+      image_frame, previous_frame);
+  EXPECT_THAT(motion_summary.motion_type, MotionSummary::MotionType::kDeformative);
+  EXPECT_NEAR(0.92, motion_summary.tracked_points_ratio, 0.1);
+  EXPECT_NEAR(31.7, motion_summary.mean_dx, 0.1);
+  EXPECT_NEAR(31.7, motion_summary.mean_dy, 0.1);
+  EXPECT_NEAR(44.7, motion_summary.mean_magnitude, 0.1);
+  EXPECT_NEAR(45.0, motion_summary.mean_direction, 0.1);
+  EXPECT_NEAR(40.6, motion_summary.std_dx, 0.1);
+  EXPECT_NEAR(91.1, motion_summary.std_dy, 0.1);
+}
+
+TEST(ComputeMotionSummary, TheSameWorks) {
+  Runfiles* files = Runfiles::CreateForTest();
+  const cv::Mat image_frame = cv::imread(
+      files->Rlocation("_main/testdata/frame_27.jpg"), cv::IMREAD_GRAYSCALE);
+  ASSERT_FALSE(image_frame.empty());
+
+  MotionSummary motion_summary = ComputeMotionSummary(
+      image_frame, image_frame);
+  EXPECT_THAT(motion_summary.motion_type, MotionSummary::MotionType::kMinimal);
+  EXPECT_NEAR(1., motion_summary.tracked_points_ratio, 0.01);
+  EXPECT_NEAR(0., motion_summary.std_dx, 0.01);
+  EXPECT_NEAR(0., motion_summary.std_dy, 0.01);
+}
+
+TEST(ComputeMotionSummary, CompletelyDifferentWorks) {
+  Runfiles* files = Runfiles::CreateForTest();
+  // Previous and current frames have nothing in common
+  const cv::Mat previous_frame = cv::imread(
+      files->Rlocation("_main/testdata/reconstruction/frame_0.jpg"), cv::IMREAD_GRAYSCALE);
+  const cv::Mat image_frame = cv::imread(
+      files->Rlocation("_main/testdata/frame_27.jpg"), cv::IMREAD_GRAYSCALE);
+  ASSERT_FALSE(image_frame.empty());
+
+  MotionSummary motion_summary = ComputeMotionSummary(
+      image_frame, previous_frame);
+  EXPECT_NEAR(0, motion_summary.std_dx, 0.01);
+  EXPECT_NEAR(0, motion_summary.std_dy, 0.01);
+}
+
+} // namespace
+} // namespace sfm
