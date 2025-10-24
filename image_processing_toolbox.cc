@@ -2,7 +2,7 @@
 #include <filesystem>
 #include "absl/strings/str_format.h"
 #include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include "absl/log/check.h"
 
 namespace sfm {
 absl::Status SaveFrames(absl::string_view video_path, int32_t k,
@@ -51,4 +51,42 @@ absl::Status SaveFrames(absl::string_view video_path, int32_t k,
   }
   return absl::OkStatus();
 }
-}  // namespace sfm
+
+absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
+    const cv::Ptr<cv::Feature2D>& detector,
+    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image,
+    const cv::Mat& previous_image,
+    float ratio_threshold) {
+  CHECK(!image.empty()) << "previous_image is empty.";
+  CHECK(!previous_image.empty()) << "image_frame is empty.";
+  CHECK(image.channels() == 1)
+      << "image must be grayscale.";
+  CHECK(previous_image.channels() == 1)
+      << "previous_image must be grayscale.";
+
+  // Detect keypoints
+  std::vector<cv::KeyPoint> kp_a;
+  std::vector<cv::KeyPoint> kp_b;
+  cv::Mat des_a;
+  cv::Mat des_b;
+  detector->detectAndCompute(image, cv::noArray(), kp_a, des_a);
+  detector->detectAndCompute(previous_image, cv::noArray(), kp_b, des_b);
+
+  // Match features
+  std::vector<std::vector<cv::DMatch>> knn_matches;
+  std::vector<cv::DMatch> good_matches;
+  matcher->knnMatch(des_a, des_b, knn_matches, /*k=*/2);
+
+  // Apply ratio test
+  for (size_t j = 0; j < knn_matches.size(); ++j) {
+    if (knn_matches[j].size() >= 2) {
+      if (knn_matches[j][0].distance > 0 && knn_matches[j][0].distance <
+          ratio_threshold * knn_matches[j][1].distance) {
+        good_matches.push_back(knn_matches[j][0]);
+      }
+    }
+  }
+
+  return good_matches;
+}
+} // namespace sfm

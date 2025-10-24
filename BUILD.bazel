@@ -45,7 +45,7 @@ cc_library(
         ["third_party/opencv/include_debug/**/*"],
         allow_empty = True,
     ),
-    includes = ["third_party/opencv/include_debub"],
+    includes = ["third_party/opencv/include_debug"],
     target_compatible_with = [
         "@platforms//os:linux",
     ],
@@ -74,6 +74,8 @@ cc_library(
         ":opencv",
         "@absl//absl/status",
         "@absl//absl/strings",
+        "@absl//absl/log:check",
+        "@absl//absl/status:statusor",
     ],
 )
 

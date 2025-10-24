@@ -15,7 +15,10 @@ namespace sfm {
 absl::Status SaveFrames(absl::string_view video_path, int32_t k,
                         absl::string_view frame_output_directory);
 
-absl::StatusOr<std::vector<int32_t>> MatchFeatures(const cv::Ptr<cv::Feature2D>& detector,
+// Returns SIFT matches for two images and given threshold.
+// The number of return matches varies from 0 to 50-100. The same image
+// returns zero matches.
+absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(const cv::Ptr<cv::Feature2D>& detector,
   const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image,
   const cv::Mat& previous_image,
   float ratio_threshold = 0.75f);
