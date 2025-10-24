@@ -86,5 +86,17 @@ TEST(MatchFeatures, BogusImage) {
   // Not even close
   EXPECT_THAT(matches, IsOkAndHolds(SizeIs(15)));
 }
+
+TEST(SaveRelatedFrames, Works) {
+  const char* tmp_dir = std::getenv("TEST_TMPDIR");
+  ASSERT_NE(tmp_dir, nullptr) << "TEST_TMPDIR not set";
+
+  const std::string output_path = std::filesystem::path(tmp_dir) / "frames";
+  Runfiles* files = Runfiles::CreateForTest();
+  ASSERT_THAT(
+      SaveRelatedFrames(files->Rlocation("_main/testdata/video_10s.mp4"),
+        output_path),
+      IsOk());
+}
 } // namespace
 } // namespace sfm

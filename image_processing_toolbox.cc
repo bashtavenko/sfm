@@ -1,8 +1,11 @@
 #include "image_processing_toolbox.h"
 #include <filesystem>
+
 #include "absl/strings/str_format.h"
 #include "opencv2/highgui.hpp"
 #include "absl/log/check.h"
+#include "status_macros.h"
+#include "absl/log/log.h"
 
 namespace sfm {
 absl::Status SaveFrames(absl::string_view video_path, int32_t k,
@@ -88,5 +91,60 @@ absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
   }
 
   return good_matches;
+}
+
+absl::Status SaveRelatedFrames(absl::string_view video_path,
+                               absl::string_view output_directory,
+                               int32_t minimum_feature_count) {
+  std::filesystem::path output_dir(output_directory);
+  if (!std::filesystem::exists(output_dir)) {
+    if (!std::filesystem::create_directories(output_dir)) {
+      return absl::InternalError("Failed to create output directory.");
+    }
+  }
+
+  cv::VideoCapture cap(video_path.data());
+  if (!cap.isOpened()) {
+    return absl::NotFoundError(
+        absl::StrFormat("Failed to open video file '%s'.", video_path));
+  }
+  int32_t total_frame_count = static_cast<int32_t>(cap.get(
+      cv::CAP_PROP_FRAME_COUNT));
+  if (total_frame_count <= 0) {
+    return absl::InternalError("Failed to read video frame count.");
+  }
+  cv::Ptr<cv::Feature2D> detector = cv::SIFT::create();
+  cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
+      cv::DescriptorMatcher::FLANNBASED);
+  size_t frame_count = 0;
+  size_t output_frame_count = 0;
+  cv::Mat image;
+  cv::Mat previous_image;
+  while (cap.read(image)) {
+    ++frame_count;
+    cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
+    if (frame_count == 1) {
+      previous_image = image;
+      continue;
+    }
+    // Actually match the features
+    ASSIGN_OR_RETURN(auto good_fetures,
+                     MatchFeatures(detector, matcher, image, previous_image));
+    if (good_fetures.size() > minimum_feature_count) {
+      ++output_frame_count;
+      std::ostringstream filename;
+      filename << absl::StreamFormat("frame_%i.jpg", frame_count);
+      std::filesystem::path output_file = output_dir / filename.str();
+      if (!cv::imwrite(output_file.string(), image)) {
+        return absl::InternalError(absl::StrFormat(
+            "Failed to save frame to '%s'.", output_file.string()));
+      }
+    }
+    previous_image = image;
+  }
+  LOG(INFO) << absl::StreamFormat("Saved %i out of %i frames",
+                                  output_frame_count, total_frame_count);
+
+  return absl::OkStatus();
 }
 } // namespace sfm

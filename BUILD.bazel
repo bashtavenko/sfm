@@ -76,6 +76,8 @@ cc_library(
         "@absl//absl/strings",
         "@absl//absl/log:check",
         "@absl//absl/status:statusor",
+        "@status_macros",
+        "@absl//absl/log:log"
     ],
 )
 
