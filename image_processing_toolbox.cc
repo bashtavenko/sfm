@@ -2,9 +2,10 @@
 #include <filesystem>
 
 #include "absl/strings/str_format.h"
-#include "opencv2/highgui.hpp"
 #include "status_macros.h"
 #include "glog/logging.h"
+#include "opencv2/features2d.hpp"
+#include "opencv2/imgproc.hpp"
 
 namespace sfm {
 absl::Status SaveFrames(absl::string_view video_path, int32_t k,
@@ -54,44 +55,37 @@ absl::Status SaveFrames(absl::string_view video_path, int32_t k,
   return absl::OkStatus();
 }
 
-absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
-    const cv::Ptr<cv::Feature2D>& detector,
-    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image_a,
-    const cv::Mat& image_b,
-    float ratio_threshold) {
+cv::Mat ComputeDescriptor(const cv::Ptr<cv::Feature2D>& detector,
+                          const cv::Mat& image) {
+  cv::Mat descriptor;
   constexpr float kScaleFactor = 0.5f;
-  CHECK(!image_a.empty()) << "previous_image is empty.";
-  CHECK(!image_b.empty()) << "image_frame is empty.";
-  cv::Mat image;
-  cv::cvtColor(image_a, image, cv::COLOR_BGR2GRAY);
-  cv::resize(image, image, cv::Size(), kScaleFactor, kScaleFactor,
+  CHECK(!image.empty()) << "Empty image.";
+  cv::Mat converted;
+  cv::cvtColor(image, converted, cv::COLOR_BGR2GRAY);
+  cv::resize(converted, converted, cv::Size(), kScaleFactor, kScaleFactor,
              cv::INTER_LINEAR);
-  cv::Mat previous_image;
-  cv::cvtColor(image_b, previous_image, cv::COLOR_BGR2GRAY);
-  cv::resize(previous_image, previous_image, cv::Size(), kScaleFactor,
-             kScaleFactor, cv::INTER_LINEAR);
+  std::vector<cv::KeyPoint> keypoints;
+  detector->detectAndCompute(converted, cv::noArray(), keypoints, descriptor);
+  return descriptor;
+}
 
-  // Detect keypoints
-  std::vector<cv::KeyPoint> kp_a;
-  std::vector<cv::KeyPoint> kp_b;
-  cv::Mat des_a;
-  cv::Mat des_b;
-  detector->detectAndCompute(image, cv::noArray(), kp_a, des_a);
-  detector->detectAndCompute(previous_image, cv::noArray(), kp_b, des_b);
-
+absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
+    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& descriptor_a,
+    const cv::Mat& descriptor_b) {
+  constexpr float kRatioThreshold = 0.75f;
   // Match features
   std::vector<std::vector<cv::DMatch>> knn_matches;
   std::vector<cv::DMatch> good_matches;
-  matcher->knnMatch(des_a, des_b, knn_matches, /*k=*/2);
+  matcher->knnMatch(descriptor_a, descriptor_b, knn_matches, /*k=*/2);
 
   // Apply ratio test
   for (size_t j = 0; j < knn_matches.size(); ++j) {
-    LOG(INFO) << absl::StreamFormat("Distance %f : %f",
-                                    knn_matches[j][0].distance,
-                                    knn_matches[j][1].distance);
+    // LOG(INFO) << absl::StreamFormat("Distance %f : %f",
+    //                                 knn_matches[j][0].distance,
+    //                                 knn_matches[j][1].distance);
     if (knn_matches[j].size() >= 2) {
       if (knn_matches[j][0].distance > 0 && knn_matches[j][0].distance <
-          ratio_threshold * knn_matches[j][1].distance) {
+          kRatioThreshold * knn_matches[j][1].distance) {
         good_matches.push_back(knn_matches[j][0]);
       }
     }
@@ -127,29 +121,33 @@ absl::Status SaveRelatedFrames(absl::string_view video_path,
   size_t output_frame_count = 0;
   cv::Mat image;
   cv::Mat previous_image;
+  cv::Mat image_descriptor;
+  cv::Mat previous_descriptor;
   LOG(INFO) << "Frame count: " << total_frame_count;
   while (cap.read(image)) {
     ++frame_count;
     if (frame_count == 1) {
-      previous_image = image;
+      previous_image = image.clone();
+      previous_descriptor = ComputeDescriptor(detector, previous_image);
       continue;
     }
+    image_descriptor = ComputeDescriptor(detector, image);
     // Actually match the features
     ASSIGN_OR_RETURN(auto good_fetures,
-                     MatchFeatures(detector, matcher, image, previous_image));
-    if (good_fetures.size() > 0)
-      LOG(INFO) << "Good features: " << good_fetures.size();
+                     MatchFeatures(matcher, image_descriptor,
+                       previous_descriptor));
     if (good_fetures.size() > minimum_feature_count) {
       ++output_frame_count;
       std::ostringstream filename;
-      filename << absl::StreamFormat("frame_%i.jpg", frame_count);
+      filename << absl::StreamFormat("frame_%i.jpg", output_frame_count);
       std::filesystem::path output_file = output_dir / filename.str();
       if (!cv::imwrite(output_file.string(), image)) {
         return absl::InternalError(absl::StrFormat(
             "Failed to save frame to '%s'.", output_file.string()));
       }
+      previous_image = image.clone();
+      previous_descriptor.copyTo(image_descriptor);
     }
-    previous_image = image;
   }
   LOG(INFO) << absl::StreamFormat("Saved %i out of %i frames",
                                   output_frame_count, total_frame_count);

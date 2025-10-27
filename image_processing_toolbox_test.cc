@@ -4,10 +4,13 @@
 #include "gmock/gmock-matchers.h"
 #include "gtest/gtest.h"
 #include "tools/cpp/runfiles/runfiles.h"
+#include <filesystem>
+#include "opencv2/opencv.hpp"
 
 namespace sfm {
 namespace {
 using ::absl_testing::IsOk;
+
 using ::absl_testing::IsOkAndHolds;
 using ::testing::SizeIs;
 using ::bazel::tools::cpp::runfiles::Runfiles;
@@ -45,7 +48,9 @@ TEST(MatchFeatures, TwoValidImages) {
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
       cv::DescriptorMatcher::FLANNBASED);
 
-  auto matches = MatchFeatures(detector, matcher, image, previous_image);
+  cv::Mat descriptor_a = ComputeDescriptor(detector, image);
+  cv::Mat descriptor_b = ComputeDescriptor(detector, previous_image);
+  auto matches = MatchFeatures(matcher, descriptor_a, descriptor_b);
   EXPECT_THAT(matches, IsOkAndHolds(SizeIs(26)));
 }
 
@@ -59,7 +64,8 @@ TEST(MatchFeatures, SameImage) {
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
       cv::DescriptorMatcher::FLANNBASED);
 
-  auto matches = MatchFeatures(detector, matcher, image, image);
+  cv::Mat descriptor_a = ComputeDescriptor(detector, image);
+  auto matches = MatchFeatures(matcher, descriptor_a, descriptor_a);
   EXPECT_THAT(matches, IsOkAndHolds(SizeIs(0)));
 }
 
@@ -77,7 +83,9 @@ TEST(MatchFeatures, BogusImage) {
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
       cv::DescriptorMatcher::FLANNBASED);
 
-  auto matches = MatchFeatures(detector, matcher, image, previous_image);
+  cv::Mat descriptor_a = ComputeDescriptor(detector, image);
+  cv::Mat descriptor_b = ComputeDescriptor(detector, previous_image);
+  auto matches = MatchFeatures(matcher, descriptor_a, descriptor_b);
   // Not even close
   EXPECT_THAT(matches, IsOkAndHolds(SizeIs(8)));
 }
