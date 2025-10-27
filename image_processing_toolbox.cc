@@ -3,9 +3,8 @@
 
 #include "absl/strings/str_format.h"
 #include "opencv2/highgui.hpp"
-#include "absl/log/check.h"
 #include "status_macros.h"
-#include "absl/log/log.h"
+#include "glog/logging.h"
 
 namespace sfm {
 absl::Status SaveFrames(absl::string_view video_path, int32_t k,
@@ -57,15 +56,20 @@ absl::Status SaveFrames(absl::string_view video_path, int32_t k,
 
 absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
     const cv::Ptr<cv::Feature2D>& detector,
-    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image,
-    const cv::Mat& previous_image,
+    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image_a,
+    const cv::Mat& image_b,
     float ratio_threshold) {
-  CHECK(!image.empty()) << "previous_image is empty.";
-  CHECK(!previous_image.empty()) << "image_frame is empty.";
-  CHECK(image.channels() == 1)
-      << "image must be grayscale.";
-  CHECK(previous_image.channels() == 1)
-      << "previous_image must be grayscale.";
+  constexpr float kScaleFactor = 0.5f;
+  CHECK(!image_a.empty()) << "previous_image is empty.";
+  CHECK(!image_b.empty()) << "image_frame is empty.";
+  cv::Mat image;
+  cv::cvtColor(image_a, image, cv::COLOR_BGR2GRAY);
+  cv::resize(image, image, cv::Size(), kScaleFactor, kScaleFactor,
+             cv::INTER_LINEAR);
+  cv::Mat previous_image;
+  cv::cvtColor(image_b, previous_image, cv::COLOR_BGR2GRAY);
+  cv::resize(previous_image, previous_image, cv::Size(), kScaleFactor,
+             kScaleFactor, cv::INTER_LINEAR);
 
   // Detect keypoints
   std::vector<cv::KeyPoint> kp_a;
@@ -82,6 +86,9 @@ absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
 
   // Apply ratio test
   for (size_t j = 0; j < knn_matches.size(); ++j) {
+    LOG(INFO) << absl::StreamFormat("Distance %f : %f",
+                                    knn_matches[j][0].distance,
+                                    knn_matches[j][1].distance);
     if (knn_matches[j].size() >= 2) {
       if (knn_matches[j][0].distance > 0 && knn_matches[j][0].distance <
           ratio_threshold * knn_matches[j][1].distance) {
@@ -95,7 +102,7 @@ absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
 
 absl::Status SaveRelatedFrames(absl::string_view video_path,
                                absl::string_view output_directory,
-                               int32_t minimum_feature_count) {
+                               size_t minimum_feature_count) {
   std::filesystem::path output_dir(output_directory);
   if (!std::filesystem::exists(output_dir)) {
     if (!std::filesystem::create_directories(output_dir)) {
@@ -120,9 +127,9 @@ absl::Status SaveRelatedFrames(absl::string_view video_path,
   size_t output_frame_count = 0;
   cv::Mat image;
   cv::Mat previous_image;
+  LOG(INFO) << "Frame count: " << total_frame_count;
   while (cap.read(image)) {
     ++frame_count;
-    cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
     if (frame_count == 1) {
       previous_image = image;
       continue;
@@ -130,6 +137,8 @@ absl::Status SaveRelatedFrames(absl::string_view video_path,
     // Actually match the features
     ASSIGN_OR_RETURN(auto good_fetures,
                      MatchFeatures(detector, matcher, image, previous_image));
+    if (good_fetures.size() > 0)
+      LOG(INFO) << "Good features: " << good_fetures.size();
     if (good_fetures.size() > minimum_feature_count) {
       ++output_frame_count;
       std::ostringstream filename;

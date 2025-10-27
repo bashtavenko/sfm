@@ -4,14 +4,17 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "image_processing_toolbox.h"
+#include "status_macros.h"
 
-ABSL_FLAG(std::string, input_video_path, "testdata/video_10s.mp4",
+ABSL_FLAG(std::string, input_video_path, "testdata/video.mp4",
           "Input video path file.");
 ABSL_FLAG(std::string, output_directory, "/tmp/frames",
           "Directory which have the frame files.");
 
 absl::Status Run() {
-
+  RETURN_IF_ERROR(
+      sfm::SaveRelatedFrames(absl::GetFlag(FLAGS_input_video_path), absl::
+        GetFlag(FLAGS_output_directory)));
   return absl::OkStatus();
 }
 

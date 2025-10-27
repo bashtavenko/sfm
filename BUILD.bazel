@@ -74,10 +74,10 @@ cc_library(
         ":opencv",
         "@absl//absl/status",
         "@absl//absl/strings",
-        "@absl//absl/log:check",
         "@absl//absl/status:statusor",
+        # Status macros want glog and not absl log
         "@status_macros",
-        "@absl//absl/log:log"
+        "@glog"
     ],
 )
 

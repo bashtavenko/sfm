@@ -40,5 +40,6 @@ MODULE.bazel.lock
 .idea/
 
 testdata/local/**/*
+testdata/**/*.mp4
 
 third_party

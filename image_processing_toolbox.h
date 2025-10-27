@@ -19,8 +19,8 @@ absl::Status SaveFrames(absl::string_view video_path, int32_t k,
 // returns zero matches.
 absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
     const cv::Ptr<cv::Feature2D>& detector,
-    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image,
-    const cv::Mat& previous_image,
+    const cv::Ptr<cv::DescriptorMatcher>& matcher, const cv::Mat& image_a,
+    const cv::Mat& image_b,
     float ratio_threshold = 0.75f);
 
 // For the given video selects frames that overlaps with previous frame and
@@ -29,7 +29,7 @@ absl::StatusOr<std::vector<cv::DMatch>> MatchFeatures(
 // Frames are saved when actual feature count is higher than that parameter.
 absl::Status SaveRelatedFrames(absl::string_view video_path,
                                absl::string_view output_directory,
-                               int32_t minimum_feature_count = 20);
+                               size_t minimum_feature_count = 20);
 } // namespace sfm
 
 #endif  // IMAGE_PROCESSING_TOOLBOX_H

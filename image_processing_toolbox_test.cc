@@ -35,28 +35,25 @@ TEST(MatchFeatures, TwoValidImages) {
   Runfiles* files = Runfiles::CreateForTest();
   const cv::Mat image = cv::imread(
       files->Rlocation(
-          "_main/testdata/reconstruction/kleenex/two_frames/frame_1.jpg"),
-      cv::IMREAD_GRAYSCALE);
+          "_main/testdata/reconstruction/kleenex/two_frames/frame_1.jpg"));
   ASSERT_FALSE(image.empty());
   const cv::Mat previous_image = cv::imread(
       files->Rlocation(
-          "_main/testdata/reconstruction/kleenex/two_frames/frame_35.jpg"),
-      cv::IMREAD_GRAYSCALE);
+          "_main/testdata/reconstruction/kleenex/two_frames/frame_35.jpg"));
   ASSERT_FALSE(previous_image.empty());
   cv::Ptr<cv::Feature2D> detector = cv::SIFT::create();
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
       cv::DescriptorMatcher::FLANNBASED);
 
   auto matches = MatchFeatures(detector, matcher, image, previous_image);
-  EXPECT_THAT(matches, IsOkAndHolds(SizeIs(70)));
+  EXPECT_THAT(matches, IsOkAndHolds(SizeIs(26)));
 }
 
 TEST(MatchFeatures, SameImage) {
   Runfiles* files = Runfiles::CreateForTest();
   const cv::Mat image = cv::imread(
       files->Rlocation(
-          "_main/testdata/reconstruction/kleenex/two_frames/frame_1.jpg"),
-      cv::IMREAD_GRAYSCALE);
+          "_main/testdata/reconstruction/kleenex/two_frames/frame_1.jpg"));
   ASSERT_FALSE(image.empty());
   cv::Ptr<cv::Feature2D> detector = cv::SIFT::create();
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
@@ -70,13 +67,11 @@ TEST(MatchFeatures, BogusImage) {
   Runfiles* files = Runfiles::CreateForTest();
   const cv::Mat image = cv::imread(
       files->Rlocation(
-          "_main/testdata/reconstruction/kleenex/two_frames/frame_1.jpg"),
-      cv::IMREAD_GRAYSCALE);
+          "_main/testdata/reconstruction/kleenex/two_frames/frame_1.jpg"));
   ASSERT_FALSE(image.empty());
   const cv::Mat previous_image = cv::imread(
       files->Rlocation(
-          "_main/testdata/reconstruction/frame_0.jpg"),
-      cv::IMREAD_GRAYSCALE);
+          "_main/testdata/reconstruction/frame_0.jpg"));
   ASSERT_FALSE(previous_image.empty());
   cv::Ptr<cv::Feature2D> detector = cv::SIFT::create();
   cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create(
@@ -84,7 +79,7 @@ TEST(MatchFeatures, BogusImage) {
 
   auto matches = MatchFeatures(detector, matcher, image, previous_image);
   // Not even close
-  EXPECT_THAT(matches, IsOkAndHolds(SizeIs(15)));
+  EXPECT_THAT(matches, IsOkAndHolds(SizeIs(8)));
 }
 
 TEST(SaveRelatedFrames, Works) {
