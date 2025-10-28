@@ -10,11 +10,24 @@ ABSL_FLAG(std::string, input_video_path, "testdata/video.mp4",
           "Input video path file.");
 ABSL_FLAG(std::string, output_directory, "/tmp/frames",
           "Directory which have the frame files.");
+ABSL_FLAG(std::int32_t, threshold, 0,
+          "Minimum feature count to output new image. Mutually exclusive with number_frames.");
+ABSL_FLAG(int32_t, number_frames, 50,
+          "Number of frames to take from the input file. Mutually exclusive with threshold.");
 
 absl::Status Run() {
-  RETURN_IF_ERROR(
-      sfm::SaveRelatedFrames(absl::GetFlag(FLAGS_input_video_path), absl::
-        GetFlag(FLAGS_output_directory)));
+  if (absl::GetFlag(FLAGS_threshold) > 0 && !
+      absl::GetFlag(FLAGS_number_frames)) {
+    RETURN_IF_ERROR(
+        sfm::SaveRelatedFrames(absl::GetFlag(FLAGS_input_video_path), absl::
+          GetFlag(FLAGS_output_directory), absl::GetFlag(FLAGS_threshold)));
+  } else if (!absl::GetFlag(FLAGS_threshold) && absl::GetFlag(
+                 FLAGS_number_frames) > 0) {
+    RETURN_IF_ERROR(
+        sfm::SaveFrames(absl::GetFlag(FLAGS_input_video_path), absl::GetFlag(
+            FLAGS_number_frames), absl::
+          GetFlag(FLAGS_output_directory)));
+  } else return absl::InvalidArgumentError("Mutually exclusive options");
   return absl::OkStatus();
 }
 
