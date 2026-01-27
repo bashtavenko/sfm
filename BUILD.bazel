@@ -1,5 +1,6 @@
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
-load("@rules_cc//cc:defs.bzl", "cc_proto_library")
+load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary", "cc_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 # bazel run //:buildifier
