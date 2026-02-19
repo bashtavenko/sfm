@@ -31,12 +31,15 @@ reconstructs both sparse and dense in 2-3 minutes, which is incredible in qualit
 I ran the very same images and camera poses through NeRF and Gaussian Spatting. 
 
 ### NeRF
-<video src="images/nerf-tiny.mp4" width="400" height="200" controls>  
-  Your browser does not support the video tag.
-</video>
+<img src="images/nerf.png" />
+
+![Video](images/nerf-tiny.mp4)
+
+
 
 ### Gaussian Spatting
-<video src="images/traj_tiny.mp4" width="400" height="200" controls>  
-  Your browser does not support the video tag.
-</video>
+
+<img src="images/gsplat.png" />
+
+![Video](images/traj_tiny.mp4)
 
