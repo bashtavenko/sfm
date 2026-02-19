@@ -19,14 +19,24 @@ With 13 frames it is
 This is a very basic rudimentary SfM. For the same 13 input images [Colmap](https://github.com/colmap/colmap)
 reconstructs both sparse and dense in 2-3 minutes, which is incredible in quality and speed:
 
-**Sparse** 
-<img src="images/sparse.jpg" width="400" height="200"/>
+## COLMAP classic
+### Sparse 
+<img src="images/sparse.jpg"/>
 
-**Dense**
-<img src="images/snapshot00.png" width="400" height="200"/>
+### Dense (Poisson)
+<img src="images/frame000000.png" />
 
-## This comes with
+## Volumetric rendering
 
-* Chopping frames from video file
-* Camera calibration
-* Reconstruction (from frame directory to point cloud PLY)
+I ran the very same images and camera poses through NeRF and Gaussian Spatting. 
+
+### NeRF
+<video src="images/nerf-tiny.mp4" width="400" height="200" controls>  
+  Your browser does not support the video tag.
+</video>
+
+### Gaussian Spatting
+<video src="images/traj_tiny.mp4" width="400" height="200" controls>  
+  Your browser does not support the video tag.
+</video>
+
