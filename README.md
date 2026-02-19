@@ -42,4 +42,3 @@ I ran the very same images and camera poses through NeRF and Gaussian Spatting.
 <img src="images/gsplat.png" />
 
 ![Video](images/traj_tiny.mp4)
-
