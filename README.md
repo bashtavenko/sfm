@@ -26,6 +26,12 @@ reconstructs both sparse and dense in 2-3 minutes, which is incredible in qualit
 ### Dense (Poisson)
 <img src="images/frame000000.png" />
 
+## Depth map
+<img src="images/depth_map.png" />
+
+## Normal map
+<img src="images/normal_map.png" alt="Normal map" />
+
 ## Volumetric rendering
 
 I ran the very same images and camera poses through NeRF and Gaussian Spatting. 
